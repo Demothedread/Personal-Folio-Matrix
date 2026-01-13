@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ModuleData, ModuleType } from '../types';
 import { MODULE_TEMPLATES, getCategoryColor, ModuleTemplate } from '../utils/moduleTemplates';
 
@@ -36,7 +36,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       : 0;
     
     // Generate unique ID
-    const newId = `module-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newId = `module-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     
     const newModule: ModuleData = {
       ...template.template,
@@ -57,12 +57,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setDeleteConfirm(null);
     } else {
       setDeleteConfirm(id);
-      // Auto-cancel after 3 seconds
-      setTimeout(() => {
-        setDeleteConfirm(null);
-      }, 3000);
     }
   };
+
+  // Auto-cancel delete confirmation after 3 seconds
+  useEffect(() => {
+    if (deleteConfirm) {
+      const timer = setTimeout(() => {
+        setDeleteConfirm(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteConfirm]);
 
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
