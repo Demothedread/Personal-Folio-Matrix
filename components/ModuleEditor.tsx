@@ -7,19 +7,86 @@ interface ModuleEditorProps {
   onCancel: () => void;
 }
 
+interface ValidationErrors {
+  title?: string;
+  width?: string;
+  height?: string;
+  embedUrl?: string;
+  general?: string;
+}
+
 const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel }) => {
   const [formData, setFormData] = useState<ModuleData>({ ...module });
+  const [errors, setErrors] = useState<ValidationErrors>({});
 
   const handleChange = (field: keyof ModuleData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear related error when user starts typing
+    if (field === 'title' && errors.title) {
+      setErrors(prev => ({ ...prev, title: undefined }));
+    }
+    if (field === 'embedUrl' && errors.embedUrl) {
+      setErrors(prev => ({ ...prev, embedUrl: undefined }));
+    }
   };
 
-  const handleDimensionChange = (field: 'w' | 'h', value: number) => {
-    setFormData(prev => ({ ...prev, dimensions: { ...prev.dimensions, [field]: Number(value) } }));
+  const handleDimensionChange = (field: 'w' | 'h', value: string) => {
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) || value === '') {
+      setFormData(prev => ({ ...prev, dimensions: { ...prev.dimensions, [field]: value === '' ? 0 : numValue } }));
+      // Clear related error
+      if (field === 'w' && errors.width) {
+        setErrors(prev => ({ ...prev, width: undefined }));
+      }
+      if (field === 'h' && errors.height) {
+        setErrors(prev => ({ ...prev, height: undefined }));
+      }
+    }
   };
 
-  const handlePosChange = (field: 'x' | 'y' | 'z', value: number) => {
-    setFormData(prev => ({ ...prev, worldPos: { ...prev.worldPos, [field]: Number(value) } }));
+  const handlePosChange = (field: 'x' | 'y' | 'z', value: string) => {
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) || value === '' || value === '-') {
+      setFormData(prev => ({ ...prev, worldPos: { ...prev.worldPos, [field]: value === '' || value === '-' ? 0 : numValue } }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
+
+    // Validate title
+    if (!formData.title || formData.title.trim() === '') {
+      newErrors.title = 'Title is required';
+    }
+
+    // Validate dimensions
+    if (!formData.dimensions.w || formData.dimensions.w <= 0) {
+      newErrors.width = 'Width must be greater than 0';
+    }
+    if (!formData.dimensions.h || formData.dimensions.h <= 0) {
+      newErrors.height = 'Height must be greater than 0';
+    }
+
+    // Validate embed URL if type is EXTERNAL_EMBED
+    if (formData.type === ModuleType.EXTERNAL_EMBED && formData.embedUrl) {
+      try {
+        const url = new URL(formData.embedUrl);
+        if (!url.protocol.startsWith('http')) {
+          newErrors.embedUrl = 'URL must start with http:// or https://';
+        }
+      } catch {
+        newErrors.embedUrl = 'Invalid URL format';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = () => {
+    if (validateForm()) {
+      onSave(formData);
+    }
   };
 
   return (
@@ -31,18 +98,28 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel })
           <button onClick={onCancel} className="hover:text-white">✕</button>
         </div>
 
+        {/* Error Banner */}
+        {Object.keys(errors).length > 0 && (
+          <div className="bg-red-600 text-white px-4 py-2 text-xs font-mono">
+            ⚠ VALIDATION ERRORS DETECTED - Please fix the highlighted fields
+          </div>
+        )}
+
         {/* Form Body */}
         <div className="p-6 overflow-y-auto space-y-6 font-mono text-sm text-gray-800 dark:text-gray-200">
           
           {/* Identity Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs uppercase opacity-70">Title</label>
+              <label className="text-xs uppercase opacity-70">Title *</label>
               <input 
-                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-400 p-2 focus:border-prairie-ochre outline-none"
+                className={`w-full bg-gray-100 dark:bg-gray-800 border p-2 focus:border-prairie-ochre outline-none ${
+                  errors.title ? 'border-red-500' : 'border-gray-400'
+                }`}
                 value={formData.title} 
                 onChange={e => handleChange('title', e.target.value)} 
               />
+              {errors.title && <p className="text-red-600 text-xs mt-1">{errors.title}</p>}
             </div>
             <div className="space-y-1">
               <label className="text-xs uppercase opacity-70">Module Type</label>
@@ -77,21 +154,41 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel })
              <label className="text-xs uppercase font-bold text-prairie-ochre">Spatial Geometry</label>
              <div className="grid grid-cols-3 gap-2">
                 <label className="flex flex-col"><span className="text-[10px]">POS X</span>
-                    <input type="number" value={formData.worldPos.x} onChange={e => handlePosChange('x', Number(e.target.value))} className="bg-gray-100 dark:bg-gray-800 border p-1" />
+                    <input type="number" value={formData.worldPos.x} onChange={e => handlePosChange('x', e.target.value)} className="bg-gray-100 dark:bg-gray-800 border border-gray-400 p-1" />
                 </label>
                 <label className="flex flex-col"><span className="text-[10px]">POS Y</span>
-                    <input type="number" value={formData.worldPos.y} onChange={e => handlePosChange('y', Number(e.target.value))} className="bg-gray-100 dark:bg-gray-800 border p-1" />
+                    <input type="number" value={formData.worldPos.y} onChange={e => handlePosChange('y', e.target.value)} className="bg-gray-100 dark:bg-gray-800 border border-gray-400 p-1" />
                 </label>
                 <label className="flex flex-col"><span className="text-[10px]">POS Z</span>
-                    <input type="number" value={formData.worldPos.z} onChange={e => handlePosChange('z', Number(e.target.value))} className="bg-gray-100 dark:bg-gray-800 border p-1" />
+                    <input type="number" value={formData.worldPos.z} onChange={e => handlePosChange('z', e.target.value)} className="bg-gray-100 dark:bg-gray-800 border border-gray-400 p-1" />
                 </label>
              </div>
              <div className="grid grid-cols-2 gap-2 mt-2">
-                <label className="flex flex-col"><span className="text-[10px]">WIDTH</span>
-                    <input type="number" value={formData.dimensions.w} onChange={e => handleDimensionChange('w', Number(e.target.value))} className="bg-gray-100 dark:bg-gray-800 border p-1" />
+                <label className="flex flex-col">
+                  <span className="text-[10px]">WIDTH *</span>
+                  <input 
+                    type="number" 
+                    min="1"
+                    value={formData.dimensions.w} 
+                    onChange={e => handleDimensionChange('w', e.target.value)} 
+                    className={`bg-gray-100 dark:bg-gray-800 border p-1 ${
+                      errors.width ? 'border-red-500' : 'border-gray-400'
+                    }`}
+                  />
+                  {errors.width && <p className="text-red-600 text-[10px] mt-1">{errors.width}</p>}
                 </label>
-                <label className="flex flex-col"><span className="text-[10px]">HEIGHT</span>
-                    <input type="number" value={formData.dimensions.h} onChange={e => handleDimensionChange('h', Number(e.target.value))} className="bg-gray-100 dark:bg-gray-800 border p-1" />
+                <label className="flex flex-col">
+                  <span className="text-[10px]">HEIGHT *</span>
+                  <input 
+                    type="number" 
+                    min="1"
+                    value={formData.dimensions.h} 
+                    onChange={e => handleDimensionChange('h', e.target.value)} 
+                    className={`bg-gray-100 dark:bg-gray-800 border p-1 ${
+                      errors.height ? 'border-red-500' : 'border-gray-400'
+                    }`}
+                  />
+                  {errors.height && <p className="text-red-600 text-[10px] mt-1">{errors.height}</p>}
                 </label>
              </div>
           </div>
@@ -106,11 +203,14 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel })
                  <div className="space-y-1">
                     <label className="text-xs opacity-70">Embed URL (https://...)</label>
                     <input 
-                        className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-400 p-2 font-mono text-xs"
+                        className={`w-full bg-gray-100 dark:bg-gray-800 border p-2 font-mono text-xs ${
+                          errors.embedUrl ? 'border-red-500' : 'border-gray-400'
+                        }`}
                         value={formData.embedUrl || ''} 
                         onChange={e => handleChange('embedUrl', e.target.value)} 
                         placeholder="https://example.com"
                     />
+                    {errors.embedUrl && <p className="text-red-600 text-xs mt-1">{errors.embedUrl}</p>}
                  </div>
              )}
 
@@ -151,7 +251,7 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel })
             <button onClick={onCancel} className="px-4 py-2 text-xs uppercase font-bold border border-gray-500 hover:bg-gray-300 dark:hover:bg-gray-700">
                 Cancel
             </button>
-            <button onClick={() => onSave(formData)} className="px-4 py-2 text-xs uppercase font-bold bg-prairie-ochre text-black hover:bg-yellow-600 shadow-lg">
+            <button onClick={handleSave} className="px-4 py-2 text-xs uppercase font-bold bg-prairie-ochre text-black hover:bg-yellow-600 shadow-lg">
                 Save Configuration
             </button>
         </div>

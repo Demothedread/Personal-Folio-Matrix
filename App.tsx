@@ -11,6 +11,7 @@ import OsSandbox from './components/contents/OsSandbox';
 import TextEditorContent from './components/contents/TextEditorContent';
 import CustomFrameContent from './components/contents/CustomFrameContent';
 import ModuleEditor from './components/ModuleEditor';
+import AdminPanel from './components/AdminPanel';
 import { GalleryMain, GallerySatelliteFade, GallerySatelliteCarousel } from './components/contents/GallerySystem';
 import { ModuleData, ModuleType } from './types';
 import { project3DTo2D } from './utils/geometry';
@@ -20,6 +21,7 @@ function App() {
   const [isDark, setIsDark] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false); // Admin vs Preview
   const [editingModule, setEditingModule] = useState<ModuleData | null>(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   // Audio System
   const { isMuted, toggleMute, triggerHover, triggerExpand, triggerClose, initializeAudio } = useSoundSystem();
@@ -69,10 +71,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => { if (!isSurging && !expandedModuleId && !editingModule) setScrollY(window.scrollY); };
+    const handleScroll = () => { if (!isSurging && !expandedModuleId && !editingModule && !showAdminPanel) setScrollY(window.scrollY); };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isSurging, expandedModuleId, editingModule]);
+  }, [isSurging, expandedModuleId, editingModule, showAdminPanel]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
@@ -114,6 +116,32 @@ function App() {
     setEditingModule(null);
   };
 
+  const handleAddModule = (newModule: ModuleData) => {
+    setModules(prev => [...prev, newModule]);
+  };
+
+  const handleDeleteModule = (id: string) => {
+    setModules(prev => prev.filter(m => m.id !== id));
+  };
+
+  const handleDuplicateModule = (id: string) => {
+    const moduleToDuplicate = modules.find(m => m.id === id);
+    if (moduleToDuplicate) {
+      const newId = `${moduleToDuplicate.id}-copy-${Date.now()}`;
+      const duplicatedModule: ModuleData = {
+        ...moduleToDuplicate,
+        id: newId,
+        title: `${moduleToDuplicate.title}_COPY`,
+        worldPos: {
+          x: moduleToDuplicate.worldPos.x + 50,
+          y: moduleToDuplicate.worldPos.y + 100,
+          z: moduleToDuplicate.worldPos.z + 50
+        }
+      };
+      setModules(prev => [...prev, duplicatedModule]);
+    }
+  };
+
   const renderContent = (mod: ModuleData) => {
     const { type, content, embedUrl, codeSnippet } = mod;
     switch (type) {
@@ -141,18 +169,18 @@ function App() {
             initializeAudio(); 
         }}
         onMouseDown={(e) => {
-          if (expandedModuleId || isSurging || editingModule) return;
+          if (expandedModuleId || isSurging || editingModule || showAdminPanel) return;
           if ((e.target as HTMLElement).closest('button, select, input, textarea')) return;
           setIsDragging(true); setStartDrag({ x: e.clientX, y: e.clientY }); setStartScrollY(window.scrollY); setStartRotationY(rotationY);
         }}
         onMouseMove={(e) => {
-          if (!isDragging || expandedModuleId || isSurging || editingModule) return;
+          if (!isDragging || expandedModuleId || isSurging || editingModule || showAdminPanel) return;
           window.scrollTo(0, startScrollY - (e.clientY - startDrag.y));
           setRotationY(Math.max(-10, Math.min(10, startRotationY + ((e.clientX - startDrag.x) * (10 / 300)))));
         }}
         onMouseUp={() => setIsDragging(false)}
         onMouseLeave={() => setIsDragging(false)}
-        style={{ minHeight: '100vh', overflowY: (expandedModuleId || isSurging || editingModule) ? 'hidden' : 'auto' }}
+        style={{ minHeight: '100vh', overflowY: (expandedModuleId || isSurging || editingModule || showAdminPanel) ? 'hidden' : 'auto' }}
     >
       <div style={{ height: Math.max(5000, windowSize.h * 5) }} className="w-px invisible" />
       <BackgroundDecorations isSurging={isSurging} />
@@ -161,13 +189,13 @@ function App() {
 
       <SiteHeader isScrolled={isScrolledState} />
       
-      {!expandedModuleId && !editingModule && (
+      {!expandedModuleId && !editingModule && !showAdminPanel && (
         <AtomicMenu onClick={() => setIsMenuOpen(!isMenuOpen)} onNavigate={handleNavigate} isOpen={isMenuOpen} />
       )}
       
-      {!expandedModuleId && !isSurging && !editingModule && <ScrollControls />}
+      {!expandedModuleId && !isSurging && !editingModule && !showAdminPanel && <ScrollControls />}
       
-      <div className={`fixed inset-0 transition-all duration-700 pointer-events-none z-0 ${expandedModuleId || editingModule ? 'blur-lg scale-90 opacity-20' : (isSurging ? 'opacity-40' : 'opacity-100')}`}>
+      <div className={`fixed inset-0 transition-all duration-700 pointer-events-none z-0 ${expandedModuleId || editingModule || showAdminPanel ? 'blur-lg scale-90 opacity-20' : (isSurging ? 'opacity-40' : 'opacity-100')}`}>
         <WireframeLayer modules={modules} scrollY={scrollY} windowSize={windowSize} rotationY={rotationY} />
         {!isSurging && <ConnectionLayer modules={modules} scrollY={scrollY} windowSize={windowSize} rotationY={rotationY} />}
       </div>
@@ -185,6 +213,21 @@ function App() {
             module={editingModule} 
             onSave={handleSaveModule} 
             onCancel={() => setEditingModule(null)} 
+        />
+      )}
+
+      {/* ADMIN PANEL MODAL */}
+      {showAdminPanel && (
+        <AdminPanel
+          modules={modules}
+          onAddModule={handleAddModule}
+          onDeleteModule={handleDeleteModule}
+          onDuplicateModule={handleDuplicateModule}
+          onEditModule={(module) => {
+            setShowAdminPanel(false);
+            setEditingModule(module);
+          }}
+          onClose={() => setShowAdminPanel(false)}
         />
       )}
 
@@ -243,7 +286,7 @@ function App() {
       </div>
 
       {/* Admin Toggle */}
-      <div className="fixed bottom-6 right-24 z-50">
+      <div className="fixed bottom-6 right-24 z-50 flex gap-2">
           <button 
             onClick={() => { setIsEditMode(!isEditMode); setExpandedModuleId(null); }}
             className={`px-3 py-1 font-mono text-[10px] uppercase font-bold tracking-widest border border-current transition-all shadow-lg
@@ -254,10 +297,19 @@ function App() {
           >
               {isEditMode ? 'ADMIN // EDIT_MODE' : 'VIEWER // LOCKED'}
           </button>
+          
+          {isEditMode && (
+            <button
+              onClick={() => setShowAdminPanel(!showAdminPanel)}
+              className="px-3 py-1 font-mono text-[10px] uppercase font-bold tracking-widest bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 transition-all shadow-lg"
+            >
+              📦 MODULE MANAGER
+            </button>
+          )}
       </div>
 
       <div className="fixed top-6 left-6 z-40 mix-blend-difference text-white">
-         <div className="text-xs font-mono mt-24 md:mt-32 transition-opacity duration-500" style={{ opacity: (isScrolledState && !expandedModuleId && !editingModule) ? 1 : 0 }}>
+         <div className="text-xs font-mono mt-24 md:mt-32 transition-opacity duration-500" style={{ opacity: (isScrolledState && !expandedModuleId && !editingModule && !showAdminPanel) ? 1 : 0 }}>
             {isSurging ? 'SINGULARITY_SURGE: ACTIVE' : `DEPTH_SENSOR: ${Math.min(100, Math.max(0, (scrollY / (Math.max(5000, windowSize.h * 5) - windowSize.h)) * 100)).toFixed(0)}%`} <br/>
             GYRO_Y: {rotationY.toFixed(1)}°
          </div>
