@@ -6,43 +6,43 @@
     <title>Portfolio System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              prairie: {
-                cream: '#f5f2e9',
-                ochre: '#cc9933',
-                rust: '#a63737',
-                olive: '#708238',
-                slate: '#4a5d6e',
-                charcoal: '#2c2c2c',
-                peatmoss: '#b5d2ab',
-                periwinkle: '#C35CFF',
-
-
+      if (typeof tailwind !== 'undefined') {
+        tailwind.config = {
+          darkMode: 'class',
+          theme: {
+            extend: {
+              colors: {
+                prairie: {
+                  cream: '#f5f2e9',
+                  ochre: '#cc9933',
+                  rust: '#a63737',
+                  olive: '#708238',
+                  slate: '#4a5d6e',
+                  charcoal: '#2c2c2c',
+                  peatmoss: '#b5d2ab',
+                  periwinkle: '#C35CFF',
+                },
+                space: {
+                  black: '#0a0a0a',
+                  cyan: '##03F0D3',
+                  magenta: '##F5ACD8',
+                  yellow: '#E1FB73',
+                  grid: '##012B29',
+                }
               },
-              space: {
-                black: '#0a0a0a',
-                cyan: '##03F0D3',
-                magenta: '##F5ACD8',
-                yellow: '#E1FB73',
-                grid: '##012B29',
+              fontFamily: {
+                sans: ['Inter', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                mono: ['Fira Code', 'Courier New', 'monospace'],
+              },
+              boxShadow: {
+                'neon-cyan': '0 0 10px rgba(0, 243, 255, 0.5), 0 0 20px rgba(0, 243, 255, 0.3)',
+                'neon-magenta': '0 0 10px rgba(255, 0, 255, 0.5), 0 0 20px rgba(255, 0, 255, 0.3)',
+                'prairie-glow': '0 4px 20px rgba(166, 55, 55, 0.2)',
+                'inner-screen': 'inset 0 0 20px rgba(0,0,0,0.8)',
               }
-            },
-            fontFamily: {
-              sans: ['Inter', 'Helvetica Neue', 'Arial', 'sans-serif'],
-              mono: ['Fira Code', 'Courier New', 'monospace'],
-            },
-            boxShadow: {
-              'neon-cyan': '0 0 10px rgba(0, 243, 255, 0.5), 0 0 20px rgba(0, 243, 255, 0.3)',
-              'neon-magenta': '0 0 10px rgba(255, 0, 255, 0.5), 0 0 20px rgba(255, 0, 255, 0.3)',
-              'prairie-glow': '0 4px 20px rgba(166, 55, 55, 0.2)',
-              'inner-screen': 'inset 0 0 20px rgba(0,0,0,0.8)',
             }
           }
-        }
+        };
       }
     </script>
     <style>
@@ -74,5 +74,6 @@
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
