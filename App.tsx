@@ -17,11 +17,20 @@ import { ModuleData, ModuleType } from './types';
 import { project3DTo2D } from './utils/geometry';
 import { useSoundSystem } from './hooks/useSoundSystem';
 
+const ADMIN_AUTH_KEY = 'pfm_admin_auth';
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'matrix';
+
 function App() {
   const [isDark, setIsDark] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false); // Admin vs Preview
   const [editingModule, setEditingModule] = useState<ModuleData | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
 
   // Audio System
   const { isMuted, toggleMute, triggerHover, triggerExpand, triggerClose, initializeAudio } = useSoundSystem();
@@ -71,15 +80,62 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => { if (!isSurging && !expandedModuleId && !editingModule && !showAdminPanel) setScrollY(window.scrollY); };
+    const handleScroll = () => { if (!isSurging && !expandedModuleId && !editingModule && !showAdminPanel && !showAdminLogin) setScrollY(window.scrollY); };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isSurging, expandedModuleId, editingModule, showAdminPanel]);
+  }, [isSurging, expandedModuleId, editingModule, showAdminPanel, showAdminLogin]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
     document.body.classList.toggle('light-mode', !isDark);
   }, [isDark]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storedAuth = window.localStorage.getItem(ADMIN_AUTH_KEY) === 'true';
+    setIsAdminAuthenticated(storedAuth);
+  }, []);
+
+  useEffect(() => {
+    if (!isAdminAuthenticated) {
+      setIsEditMode(false);
+      setShowAdminPanel(false);
+      setEditingModule(null);
+    }
+  }, [isAdminAuthenticated]);
+
+  const handleAdminLogin = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (adminUsername === ADMIN_USERNAME && adminPassword === ADMIN_PASSWORD) {
+      setIsAdminAuthenticated(true);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(ADMIN_AUTH_KEY, 'true');
+      }
+      setShowAdminLogin(false);
+      setAdminUsername('');
+      setAdminPassword('');
+      setAdminError('');
+      return;
+    }
+    setAdminError('Invalid credentials.');
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminAuthenticated(false);
+    setShowAdminLogin(false);
+    setAdminUsername('');
+    setAdminPassword('');
+    setAdminError('');
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(ADMIN_AUTH_KEY);
+    }
+  };
+
+  const openAdminLogin = () => {
+    setIsMenuOpen(false);
+    setShowAdminLogin(true);
+    setAdminError('');
+  };
 
   const triggerSingularity = async () => {
     if (isSurging) return;
@@ -169,18 +225,18 @@ function App() {
             initializeAudio(); 
         }}
         onMouseDown={(e) => {
-          if (expandedModuleId || isSurging || editingModule || showAdminPanel) return;
+          if (expandedModuleId || isSurging || editingModule || showAdminPanel || showAdminLogin) return;
           if ((e.target as HTMLElement).closest('button, select, input, textarea')) return;
           setIsDragging(true); setStartDrag({ x: e.clientX, y: e.clientY }); setStartScrollY(window.scrollY); setStartRotationY(rotationY);
         }}
         onMouseMove={(e) => {
-          if (!isDragging || expandedModuleId || isSurging || editingModule || showAdminPanel) return;
+          if (!isDragging || expandedModuleId || isSurging || editingModule || showAdminPanel || showAdminLogin) return;
           window.scrollTo(0, startScrollY - (e.clientY - startDrag.y));
           setRotationY(Math.max(-10, Math.min(10, startRotationY + ((e.clientX - startDrag.x) * (10 / 300)))));
         }}
         onMouseUp={() => setIsDragging(false)}
         onMouseLeave={() => setIsDragging(false)}
-        style={{ minHeight: '100vh', overflowY: (expandedModuleId || isSurging || editingModule || showAdminPanel) ? 'hidden' : 'auto' }}
+        style={{ minHeight: '100vh', overflowY: (expandedModuleId || isSurging || editingModule || showAdminPanel || showAdminLogin) ? 'hidden' : 'auto' }}
     >
       <div style={{ height: Math.max(5000, windowSize.h * 5) }} className="w-px invisible" />
       <BackgroundDecorations isSurging={isSurging} />
@@ -189,13 +245,13 @@ function App() {
 
       <SiteHeader isScrolled={isScrolledState} />
       
-      {!expandedModuleId && !editingModule && !showAdminPanel && (
+      {!expandedModuleId && !editingModule && !showAdminPanel && !showAdminLogin && (
         <AtomicMenu onClick={() => setIsMenuOpen(!isMenuOpen)} onNavigate={handleNavigate} isOpen={isMenuOpen} />
       )}
       
-      {!expandedModuleId && !isSurging && !editingModule && !showAdminPanel && <ScrollControls />}
+      {!expandedModuleId && !isSurging && !editingModule && !showAdminPanel && !showAdminLogin && <ScrollControls />}
       
-      <div className={`fixed inset-0 transition-all duration-700 pointer-events-none z-0 ${expandedModuleId || editingModule || showAdminPanel ? 'blur-lg scale-90 opacity-20' : (isSurging ? 'opacity-40' : 'opacity-100')}`}>
+      <div className={`fixed inset-0 transition-all duration-700 pointer-events-none z-0 ${expandedModuleId || editingModule || showAdminPanel || showAdminLogin ? 'blur-lg scale-90 opacity-20' : (isSurging ? 'opacity-40' : 'opacity-100')}`}>
         <WireframeLayer modules={modules} scrollY={scrollY} windowSize={windowSize} rotationY={rotationY} />
         {!isSurging && <ConnectionLayer modules={modules} scrollY={scrollY} windowSize={windowSize} rotationY={rotationY} />}
       </div>
@@ -208,7 +264,7 @@ function App() {
       )}
 
       {/* ADMIN EDITOR MODAL */}
-      {editingModule && (
+      {isAdminAuthenticated && editingModule && (
         <ModuleEditor 
             module={editingModule} 
             onSave={handleSaveModule} 
@@ -217,7 +273,7 @@ function App() {
       )}
 
       {/* ADMIN PANEL MODAL */}
-      {showAdminPanel && (
+      {isAdminAuthenticated && showAdminPanel && (
         <AdminPanel
           modules={modules}
           onAddModule={handleAddModule}
@@ -229,6 +285,63 @@ function App() {
           }}
           onClose={() => setShowAdminPanel(false)}
         />
+      )}
+
+      {/* ADMIN LOGIN MODAL */}
+      {showAdminLogin && (
+        <div className="fixed inset-0 z-[99998] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <form
+            onSubmit={handleAdminLogin}
+            className="w-full max-w-sm border-2 border-prairie-ochre bg-prairie-cream dark:bg-gray-900 shadow-[0_0_40px_rgba(204,153,51,0.3)] p-6 space-y-4 font-mono"
+          >
+            <div className="flex items-center justify-between text-black dark:text-gray-100">
+              <span className="text-sm font-bold">ADMIN_ACCESS</span>
+              <button type="button" onClick={() => setShowAdminLogin(false)} className="text-lg hover:text-white">✕</button>
+            </div>
+            <div className="space-y-3">
+              <label className="text-xs uppercase tracking-widest text-gray-600 dark:text-gray-300">
+                Username
+                <input
+                  value={adminUsername}
+                  onChange={(event) => { setAdminUsername(event.target.value); setAdminError(''); }}
+                  className="mt-1 w-full border border-gray-400 bg-white dark:bg-black text-gray-900 dark:text-gray-100 px-3 py-2 text-sm"
+                  type="text"
+                  autoComplete="username"
+                  required
+                />
+              </label>
+              <label className="text-xs uppercase tracking-widest text-gray-600 dark:text-gray-300">
+                Password
+                <input
+                  value={adminPassword}
+                  onChange={(event) => { setAdminPassword(event.target.value); setAdminError(''); }}
+                  className="mt-1 w-full border border-gray-400 bg-white dark:bg-black text-gray-900 dark:text-gray-100 px-3 py-2 text-sm"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                />
+              </label>
+            </div>
+            {adminError && (
+              <div className="text-xs text-red-600 dark:text-red-400">{adminError}</div>
+            )}
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAdminLogin(false)}
+                className="px-3 py-2 text-xs uppercase font-bold border border-gray-500 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-xs uppercase font-bold bg-prairie-ochre text-black border border-yellow-700 hover:bg-yellow-500 transition-colors"
+              >
+                Authenticate
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       <div className="fixed inset-0 z-[50] pointer-events-none">
@@ -252,7 +365,7 @@ function App() {
               isActive={true}
               isExpanded={isExpanded}
               isExploding={isExploding}
-              isEditMode={isEditMode}
+              isEditMode={isAdminAuthenticated && isEditMode}
               onResize={(id, w, h) => setModules(prev => prev.map(m => m.id === id ? { ...m, dimensions: { w, h } } : m))}
               onExpand={() => { setExpandedModuleId(mod.id); triggerExpand(); }}
               onClose={() => { setExpandedModuleId(null); triggerClose(); }}
@@ -287,23 +400,40 @@ function App() {
 
       {/* Admin Toggle */}
       <div className="fixed bottom-6 right-24 z-50 flex gap-2">
-          <button 
-            onClick={() => { setIsEditMode(!isEditMode); setExpandedModuleId(null); }}
-            className={`px-3 py-1 font-mono text-[10px] uppercase font-bold tracking-widest border border-current transition-all shadow-lg
-                ${isEditMode 
-                    ? 'bg-prairie-ochre text-black border-prairie-ochre rotate-1' 
-                    : 'bg-black text-gray-500 border-gray-700 hover:text-white'}
-            `}
-          >
-              {isEditMode ? 'ADMIN // EDIT_MODE' : 'VIEWER // LOCKED'}
-          </button>
-          
-          {isEditMode && (
+          {isAdminAuthenticated ? (
+            <>
+              <button 
+                onClick={() => { setIsEditMode(!isEditMode); setExpandedModuleId(null); }}
+                className={`px-3 py-1 font-mono text-[10px] uppercase font-bold tracking-widest border border-current transition-all shadow-lg
+                    ${isEditMode 
+                        ? 'bg-prairie-ochre text-black border-prairie-ochre rotate-1' 
+                        : 'bg-black text-gray-500 border-gray-700 hover:text-white'}
+                `}
+              >
+                  {isEditMode ? 'ADMIN // EDIT_MODE' : 'VIEWER // LOCKED'}
+              </button>
+              
+              {isEditMode && (
+                <button
+                  onClick={() => setShowAdminPanel(!showAdminPanel)}
+                  className="px-3 py-1 font-mono text-[10px] uppercase font-bold tracking-widest bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 transition-all shadow-lg"
+                >
+                  📦 MODULE MANAGER
+                </button>
+              )}
+              <button
+                onClick={handleAdminLogout}
+                className="px-3 py-1 font-mono text-[10px] uppercase font-bold tracking-widest border border-gray-500 text-gray-200 bg-black/80 hover:text-white transition-all shadow-lg"
+              >
+                LOG OUT
+              </button>
+            </>
+          ) : (
             <button
-              onClick={() => setShowAdminPanel(!showAdminPanel)}
-              className="px-3 py-1 font-mono text-[10px] uppercase font-bold tracking-widest bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 transition-all shadow-lg"
+              onClick={openAdminLogin}
+              className="px-3 py-1 font-mono text-[10px] uppercase font-bold tracking-widest border border-current transition-all shadow-lg bg-black text-gray-500 border-gray-700 hover:text-white"
             >
-              📦 MODULE MANAGER
+              ADMIN LOGIN
             </button>
           )}
       </div>
