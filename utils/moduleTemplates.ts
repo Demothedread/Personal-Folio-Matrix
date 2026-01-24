@@ -143,7 +143,7 @@ export const MODULE_TEMPLATES: ModuleTemplate[] = [
   // FEED TEMPLATES
   {
     name: 'RSS Feed',
-    description: 'Live RSS/Atom feed reader',
+    description: 'Live RSS/Atom feed reader (uses public proxy)',
     category: 'feed',
     icon: '🛰️',
     template: {

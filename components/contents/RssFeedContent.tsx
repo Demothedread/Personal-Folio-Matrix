@@ -13,6 +13,8 @@ interface FeedItem {
 
 const DEFAULT_MAX_ITEMS = 6;
 const RSS_PROXY_URL = 'https://api.allorigins.win/raw?url=';
+const REQUEST_TIMEOUT_MS = 8000;
+const UNSAFE_XML_PATTERN = /<!DOCTYPE|<!ENTITY|<!ATTLIST|<!ELEMENT|<!NOTATION/i;
 
 const resolveFeedUrl = (feedUrl: string) => {
   const url = new URL(feedUrl);
@@ -40,6 +42,7 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
     const controller = new AbortController();
 
     const loadFeed = async () => {
+      const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
       try {
         setStatus('loading');
         const requestUrl = resolveFeedUrl(rssUrl);
@@ -48,7 +51,7 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
           throw new Error(`RSS request failed: ${response.status}`);
         }
         const text = await response.text();
-        if (/<\!DOCTYPE/i.test(text) || /<\!ENTITY/i.test(text)) {
+        if (UNSAFE_XML_PATTERN.test(text)) {
           throw new Error('Unsupported XML content');
         }
         const parsed = new DOMParser().parseFromString(text, 'text/xml');
@@ -86,6 +89,8 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
           setItems([]);
           setStatus('error');
         }
+      } finally {
+        window.clearTimeout(timeoutId);
       }
     };
 
@@ -132,7 +137,7 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
   return (
     <ul className="space-y-2 font-mono text-xs">
       {items.map((item, index) => {
-        const key = item.link !== '#' ? item.link : `${item.title}-${index}`;
+        const key = item.link !== '#' ? item.link : `rss-${index}`;
         return (
           <li
             key={key}
