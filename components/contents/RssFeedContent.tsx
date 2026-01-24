@@ -14,7 +14,15 @@ interface FeedItem {
 const DEFAULT_MAX_ITEMS = 6;
 const RSS_PROXY_URL = 'https://api.allorigins.win/raw?url=';
 const REQUEST_TIMEOUT_MS = 8000;
-const UNSAFE_XML_PATTERN = /<!DOCTYPE|<!ENTITY|<!ATTLIST|<!ELEMENT|<!NOTATION/i;
+const UNSAFE_XML_PATTERN = /<!\s*(DOCTYPE|ENTITY|ATTLIST|ELEMENT|NOTATION)/i;
+
+const hashKey = (value: string) => {
+  let hash = 5381;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 33) ^ value.charCodeAt(i);
+  }
+  return `rss-${hash >>> 0}`;
+};
 
 const resolveFeedUrl = (feedUrl: string) => {
   const url = new URL(feedUrl);
@@ -41,12 +49,17 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
     let isMounted = true;
     const controller = new AbortController();
 
+    let timeoutId: number | null = null;
     const loadFeed = async () => {
-      const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
       try {
         setStatus('loading');
         const requestUrl = resolveFeedUrl(rssUrl);
-        const response = await fetch(requestUrl, { signal: controller.signal, credentials: 'omit' });
+        const response = await fetch(requestUrl, {
+          signal: controller.signal,
+          credentials: 'omit',
+          mode: 'cors'
+        });
         if (!response.ok) {
           throw new Error(`RSS request failed: ${response.status}`);
         }
@@ -90,7 +103,9 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
           setStatus('error');
         }
       } finally {
-        window.clearTimeout(timeoutId);
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId);
+        }
       }
     };
 
@@ -98,6 +113,9 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
 
     return () => {
       isMounted = false;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
       controller.abort();
     };
   }, [rssUrl, maxItems]);
@@ -136,8 +154,10 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
 
   return (
     <ul className="space-y-2 font-mono text-xs">
-      {items.map((item, index) => {
-        const key = item.link !== '#' ? item.link : `rss-${index}`;
+      {items.map((item) => {
+        const key = item.link !== '#'
+          ? item.link
+          : hashKey(`${item.title}|${item.date ?? ''}`);
         return (
           <li
             key={key}
