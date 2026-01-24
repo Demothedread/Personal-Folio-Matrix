@@ -1,0 +1,135 @@
+import React, { useEffect, useState } from 'react';
+
+interface RssFeedContentProps {
+  rssUrl?: string;
+  maxItems?: number;
+}
+
+interface FeedItem {
+  title: string;
+  link: string;
+  date?: string;
+}
+
+const DEFAULT_MAX_ITEMS = 6;
+
+const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFAULT_MAX_ITEMS }) => {
+  const [items, setItems] = useState<FeedItem[]>([]);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+
+  useEffect(() => {
+    if (!rssUrl) {
+      setItems([]);
+      setStatus('idle');
+      return;
+    }
+
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const loadFeed = async () => {
+      try {
+        setStatus('loading');
+        const response = await fetch(rssUrl, { signal: controller.signal });
+        if (!response.ok) {
+          throw new Error(`RSS request failed: ${response.status}`);
+        }
+        const text = await response.text();
+        const parsed = new DOMParser().parseFromString(text, 'text/xml');
+        const rssItems = Array.from(parsed.querySelectorAll('item'));
+        const atomItems = Array.from(parsed.querySelectorAll('entry'));
+        const feedItems = (rssItems.length ? rssItems : atomItems).slice(0, maxItems).map((item) => {
+          const title = item.querySelector('title')?.textContent?.trim() || 'Untitled';
+          const linkNode = item.querySelector('link');
+          const rawLink = linkNode?.getAttribute('href') || linkNode?.textContent?.trim() || '';
+          const link = (() => {
+            try {
+              if (!rawLink) return '#';
+              const url = new URL(rawLink, rssUrl);
+              if (!['http:', 'https:'].includes(url.protocol)) {
+                return '#';
+              }
+              return url.toString();
+            } catch {
+              return '#';
+            }
+          })();
+          const date = item.querySelector('pubDate, updated, published')?.textContent?.trim();
+          return { title, link, date };
+        });
+
+        if (isMounted) {
+          setItems(feedItems);
+          setStatus('idle');
+        }
+      } catch (error) {
+        if (isMounted) {
+          setItems([]);
+          setStatus('error');
+        }
+      }
+    };
+
+    loadFeed();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [rssUrl, maxItems]);
+
+  if (!rssUrl) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-900 text-gray-500 font-mono text-xs p-4 text-center">
+        NO RSS SOURCE CONFIGURED.<br />ENTER ADMIN MODE TO SET DATA.
+      </div>
+    );
+  }
+
+  if (status === 'loading') {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-900 text-gray-500 font-mono text-xs p-4 text-center">
+        LOADING RSS FEED...
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-900 text-gray-500 font-mono text-xs p-4 text-center">
+        RSS FEED UNAVAILABLE.<br />CHECK URL OR CORS SETTINGS.
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-900 text-gray-500 font-mono text-xs p-4 text-center">
+        RSS FEED EMPTY.
+      </div>
+    );
+  }
+
+  return (
+    <ul className="space-y-2 font-mono text-xs">
+      {items.map((item, index) => (
+        <li
+          key={`${item.link}-${index}`}
+          className="group flex flex-col gap-1 p-2 border border-gray-300 dark:border-gray-700 hover:border-space-cyan transition-colors"
+        >
+          <a
+            href={item.link}
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold uppercase group-hover:text-space-cyan transition-colors"
+          >
+            {item.title}
+          </a>
+          {item.date && <span className="text-[10px] opacity-60">{item.date}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+export default RssFeedContent;

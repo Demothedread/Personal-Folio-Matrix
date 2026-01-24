@@ -3,7 +3,7 @@ import { ModuleData, ModuleType } from '../types';
 export interface ModuleTemplate {
   name: string;
   description: string;
-  category: 'content' | 'gallery' | 'interactive' | 'text';
+  category: 'content' | 'gallery' | 'interactive' | 'text' | 'feed';
   icon: string;
   template: Omit<ModuleData, 'id' | 'worldPos'>;
 }
@@ -139,6 +139,20 @@ export const MODULE_TEMPLATES: ModuleTemplate[] = [
       themeColor: 'magenta',
       codeSnippet: '<div style="padding: 20px; text-align: center;"><h1>Hello World!</h1></div>'
     }
+  },
+  // FEED TEMPLATES
+  {
+    name: 'RSS Feed',
+    description: 'Live RSS/Atom feed reader',
+    category: 'feed',
+    icon: '🛰️',
+    template: {
+      type: ModuleType.RSS_FEED,
+      title: 'RSS_TRANSMISSIONS',
+      dimensions: { w: 320, h: 320 },
+      themeColor: 'slate',
+      rssUrl: 'https://example.com/rss.xml'
+    }
   }
 ];
 
@@ -148,6 +162,7 @@ export const getCategoryColor = (category: ModuleTemplate['category']): string =
     case 'gallery': return 'bg-purple-600';
     case 'content': return 'bg-green-600';
     case 'interactive': return 'bg-orange-600';
+    case 'feed': return 'bg-cyan-700';
     default: return 'bg-gray-600';
   }
 };
