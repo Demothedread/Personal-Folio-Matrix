@@ -79,7 +79,7 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
         }
         const rssItems = Array.from(parsed.querySelectorAll('item'));
         const atomItems = Array.from(parsed.querySelectorAll('entry'));
-        const feedItems = (rssItems.length ? rssItems : atomItems).slice(0, maxItems).map((item) => {
+        const feedItems = (rssItems.length ? rssItems : atomItems).slice(0, maxItems).map((item, index) => {
           const title = item.querySelector('title')?.textContent?.trim() || 'Untitled';
           const linkNode = item.querySelector('link');
           const rawLink = linkNode?.getAttribute('href') || linkNode?.textContent?.trim() || '';
@@ -98,7 +98,7 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
           const date = item.querySelector('pubDate, updated, published')?.textContent?.trim();
           const key = link !== '#'
             ? link
-            : hashKey(`${title}|${date ?? ''}`);
+            : hashKey(`${title}|${date ?? ''}|${index}`);
           return { title, link, date, key };
         });
 
@@ -165,25 +165,22 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
 
   return (
     <ul className="space-y-2 font-mono text-xs">
-      {items.map((item) => {
-        const key = item.key;
-        return (
-          <li
-            key={key}
-            className="group flex flex-col gap-1 p-2 border border-gray-300 dark:border-gray-700 hover:border-space-cyan transition-colors"
+      {items.map((item) => (
+        <li
+          key={item.key}
+          className="group flex flex-col gap-1 p-2 border border-gray-300 dark:border-gray-700 hover:border-space-cyan transition-colors"
+        >
+          <a
+            href={item.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold uppercase group-hover:text-space-cyan transition-colors"
           >
-            <a
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold uppercase group-hover:text-space-cyan transition-colors"
-            >
-              {item.title}
-            </a>
-            {item.date && <span className="text-[10px] opacity-60">{item.date}</span>}
-          </li>
-        );
-      })}
+            {item.title}
+          </a>
+          {item.date && <span className="text-[10px] opacity-60">{item.date}</span>}
+        </li>
+      ))}
     </ul>
   );
 };
