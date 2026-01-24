@@ -13,7 +13,7 @@ import CustomFrameContent from './components/contents/CustomFrameContent';
 import ModuleEditor from './components/ModuleEditor';
 import AdminPanel from './components/AdminPanel';
 import { GalleryMain, GallerySatelliteFade, GallerySatelliteCarousel } from './components/contents/GallerySystem';
-import { ModuleData, ModuleType } from './types';
+import { CMSItem, ModuleData, ModuleType } from './types';
 import { project3DTo2D } from './utils/geometry';
 import { useSoundSystem } from './hooks/useSoundSystem';
 
@@ -42,6 +42,33 @@ function App() {
   const [isSurging, setIsSurging] = useState(false);
   const [surgedIds, setSurgedIds] = useState<Set<string>>(new Set());
 
+  const blogItems: CMSItem[] = [
+    {
+      id: 'post-1',
+      title: 'Temporal Interface Log',
+      excerpt: 'Building spatial UI patterns for modular worlds.',
+      date: '2026-01-12',
+      tags: ['spatial', 'ui'],
+      body: 'Exploring spatial UX patterns for modular systems and their narrative flow.'
+    },
+    {
+      id: 'post-2',
+      title: 'Signal Drift Report',
+      excerpt: 'Designing motion systems that feel grounded.',
+      date: '2026-01-20',
+      tags: ['motion', 'systems'],
+      body: 'Depth shifts and scroll-driven motion can create believable depth cues.'
+    },
+    {
+      id: 'post-3',
+      title: 'Archive Node 03',
+      excerpt: 'Editorial workflow notes from the lab.',
+      date: '2026-01-23',
+      tags: ['cms', 'editorial'],
+      body: 'Lightweight CMS entries keep content flexible for future updates.'
+    }
+  ];
+
   const initialModules: ModuleData[] = [
     { 
         id: 'intro-text', 
@@ -58,7 +85,7 @@ function App() {
     { id: 'console-node', type: ModuleType.OS_SANDBOX, title: 'DEBUG_LOG', dimensions: { w: 250, h: 250 }, worldPos: { x: 500, y: 1400, z: -300 }, themeColor: 'olive' },
     { id: 'sat-wipe', type: ModuleType.GALLERY_SATELLITE_CAROUSEL, title: 'SAT_UPLINK_BETA', dimensions: { w: 240, h: 180 }, worldPos: { x: 280, y: 2000, z: 200 }, connectedTo: ['side-note'], themeColor: 'yellow' },
     { id: 'side-note', type: ModuleType.TEXT_BOX, title: 'CONTEXT', dimensions: { w: 180, h: 160 }, worldPos: { x: -350, y: 2400, z: -200 }, themeColor: 'yellow', content: "All systems operational. Efficiency at 98%. Neural link stable." },
-    { id: 'blog-node', type: ModuleType.ITEM_LIST, title: 'TRANSMISSIONS', dimensions: { w: 300, h: 380 }, worldPos: { x: 100, y: 3000, z: -900 }, connectedTo: ['final-contact'], themeColor: 'rust' },
+    { id: 'blog-node', type: ModuleType.BLOG_PORTAL, title: 'TRANSMISSIONS', dimensions: { w: 320, h: 420 }, worldPos: { x: 100, y: 3000, z: -900 }, connectedTo: ['final-contact'], themeColor: 'rust', cmsItems: blogItems },
     { id: 'final-contact', type: ModuleType.HERO, title: 'UPLINK_TERMINAL', dimensions: { w: 420, h: 250 }, worldPos: { x: 0, y: 3800, z: 0 }, themeColor: 'slate' }
   ];
 
@@ -150,6 +177,7 @@ function App() {
       case ModuleType.GALLERY_SATELLITE_FADE: return <GallerySatelliteFade />;
       case ModuleType.GALLERY_SATELLITE_CAROUSEL: return <GallerySatelliteCarousel />;
       case ModuleType.ITEM_LIST: return <ListContent />;
+      case ModuleType.BLOG_PORTAL: return <ListContent items={mod.cmsItems} variant="blog" />;
       case ModuleType.OS_SANDBOX: return <OsSandbox />;
       case ModuleType.TEXT_EDITOR: return <TextEditorContent />;
       case ModuleType.EXTERNAL_EMBED: return <CustomFrameContent type="EMBED" source={embedUrl} />;

@@ -89,6 +89,20 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel })
     }
   };
 
+  const parseCmsItems = (value: string) => {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        setFormData(prev => ({ ...prev, cmsItems: parsed }));
+        setErrors(prev => ({ ...prev, general: undefined }));
+        return;
+      }
+      setErrors(prev => ({ ...prev, general: 'CMS data must be a JSON array.' }));
+    } catch {
+      setErrors(prev => ({ ...prev, general: 'CMS data must be valid JSON.' }));
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="w-full max-w-2xl bg-prairie-cream dark:bg-gray-900 border-2 border-prairie-ochre shadow-[0_0_50px_rgba(204,153,51,0.3)] flex flex-col max-h-[90vh]">
@@ -237,12 +251,24 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel })
                  </div>
              )}
 
-             {/* Generic warning for other types */}
-             {!['EXTERNAL_EMBED', 'CUSTOM_CODE', 'TEXT_BOX', 'TEXT_EDITOR'].includes(formData.type) && (
-                 <div className="p-2 border border-dashed border-gray-500 text-xs opacity-60">
-                     Content for {formData.type} is handled by internal components. Dimensions and Position can still be edited.
-                 </div>
-             )}
+              {formData.type === ModuleType.BLOG_PORTAL && (
+                <div className="space-y-1 flex flex-col h-40">
+                  <label className="text-xs opacity-70">CMS Blog Items (JSON Array)</label>
+                  <textarea
+                    className="flex-1 w-full bg-gray-100 dark:bg-gray-800 border border-gray-400 p-2 font-mono text-xs"
+                    value={formData.cmsItems ? JSON.stringify(formData.cmsItems, null, 2) : '[]'}
+                    onChange={e => parseCmsItems(e.target.value)}
+                  />
+                  {errors.general && <p className="text-red-600 text-xs mt-1">{errors.general}</p>}
+                </div>
+              )}
+
+              {/* Generic warning for other types */}
+              {!['EXTERNAL_EMBED', 'CUSTOM_CODE', 'TEXT_BOX', 'TEXT_EDITOR', 'BLOG_PORTAL'].includes(formData.type) && (
+                  <div className="p-2 border border-dashed border-gray-500 text-xs opacity-60">
+                      Content for {formData.type} is handled by internal components. Dimensions and Position can still be edited.
+                  </div>
+              )}
           </div>
         </div>
 

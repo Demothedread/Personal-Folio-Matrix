@@ -2,6 +2,8 @@ import { WorldPosition } from '../types';
 
 export const PROJECT_CONSTANTS = {
   PERSPECTIVE: 800, // Reduced for stronger parallax/depth effect
+  SCROLL_DEPTH_FACTOR: 0.12,
+  DEPTH_ATTENUATION: 1000,
 };
 
 /**
@@ -14,7 +16,7 @@ export const project3DTo2D = (
   windowHeight: number,
   rotationY: number = 0 // Degrees
 ) => {
-  const { PERSPECTIVE } = PROJECT_CONSTANTS;
+  const { PERSPECTIVE, SCROLL_DEPTH_FACTOR, DEPTH_ATTENUATION } = PROJECT_CONSTANTS;
 
   // 1. Apply Global Rotation (Y-Axis)
   // Rotate around the world origin (0, 0, 0)
@@ -26,7 +28,9 @@ export const project3DTo2D = (
   // x' = x cos θ + z sin θ
   // z' = z cos θ - x sin θ
   const rx = pos.x * cos + pos.z * sin;
-  const rz = pos.z * cos - pos.x * sin;
+  const depthInfluence = Math.min(1, Math.max(0, -pos.z / DEPTH_ATTENUATION));
+  const scrollDepth = scrollY * SCROLL_DEPTH_FACTOR * depthInfluence;
+  const rz = pos.z * cos - pos.x * sin + scrollDepth;
 
   // 2. Relative Y position based on scroll. 
   // We assume y=0 is the top of the "world".
