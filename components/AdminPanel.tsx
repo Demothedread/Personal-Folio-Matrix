@@ -23,7 +23,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const categories = ['all', 'text', 'gallery', 'content', 'interactive'];
+  const categories = ['all', 'text', 'gallery', 'content', 'interactive', 'feed'];
   
   const filteredTemplates = selectedCategory === 'all' 
     ? MODULE_TEMPLATES 

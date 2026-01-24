@@ -10,6 +10,7 @@ import ListContent from './components/contents/ListContent';
 import OsSandbox from './components/contents/OsSandbox';
 import TextEditorContent from './components/contents/TextEditorContent';
 import CustomFrameContent from './components/contents/CustomFrameContent';
+import RssFeedContent from './components/contents/RssFeedContent';
 import ModuleEditor from './components/ModuleEditor';
 import AdminPanel from './components/AdminPanel';
 import { GalleryMain, GallerySatelliteFade, GallerySatelliteCarousel } from './components/contents/GallerySystem';
@@ -143,7 +144,7 @@ function App() {
   };
 
   const renderContent = (mod: ModuleData) => {
-    const { type, content, embedUrl, codeSnippet } = mod;
+    const { type, content, embedUrl, codeSnippet, rssUrl } = mod;
     switch (type) {
       case ModuleType.HERO: return <div className="flex flex-col h-full justify-center items-center text-center p-4"><h2 className="text-4xl font-bold uppercase tracking-tighter">Terminal End</h2><p className="mt-4 font-mono text-xs opacity-70">Uplink Stable</p></div>;
       case ModuleType.GALLERY_MAIN: return <GalleryMain />;
@@ -154,6 +155,7 @@ function App() {
       case ModuleType.TEXT_EDITOR: return <TextEditorContent />;
       case ModuleType.EXTERNAL_EMBED: return <CustomFrameContent type="EMBED" source={embedUrl} />;
       case ModuleType.CUSTOM_CODE: return <CustomFrameContent type="CODE" source={codeSnippet} />;
+      case ModuleType.RSS_FEED: return <RssFeedContent rssUrl={rssUrl} />;
       case ModuleType.TEXT_BOX: return <div className="font-mono text-sm leading-relaxed p-2">{content || "NO DATA"}</div>;
       default: return <div className="p-4 text-xs font-mono">OFFLINE</div>;
     }

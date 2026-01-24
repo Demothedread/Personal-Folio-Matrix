@@ -14,6 +14,7 @@ export enum ModuleType {
   MINIGAME = 'MINIGAME',
   EXTERNAL_EMBED = 'EXTERNAL_EMBED',
   CUSTOM_CODE = 'CUSTOM_CODE',
+  RSS_FEED = 'RSS_FEED',
 }
 
 export interface Dimensions {
@@ -38,6 +39,7 @@ export interface ModuleData {
   content?: any; // Used for text content
   embedUrl?: string; // Used for EXTERNAL_EMBED
   codeSnippet?: string; // Used for CUSTOM_CODE
+  rssUrl?: string; // Used for RSS_FEED
   worldPos: WorldPosition;
   dimensions: Dimensions; // Width/Height in pixels (at scale 1)
   connectedTo?: string[]; // IDs of modules this one connects to
