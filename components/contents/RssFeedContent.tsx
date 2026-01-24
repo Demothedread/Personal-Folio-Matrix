@@ -16,6 +16,8 @@ const DEFAULT_MAX_ITEMS = 6;
 const RSS_PROXY_URL = 'https://api.allorigins.win/raw?url=';
 const REQUEST_TIMEOUT_MS = 8000;
 const UNSAFE_XML_PATTERN = /<!\s*(DOCTYPE|ENTITY|ATTLIST|ELEMENT|NOTATION)/i;
+const INVALID_LINK_PLACEHOLDER = '#';
+const KEY_SEPARATOR = '|';
 
 const hashKey = (value: string) => {
   let hash = 5381;
@@ -79,26 +81,27 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
         }
         const rssItems = Array.from(parsed.querySelectorAll('item'));
         const atomItems = Array.from(parsed.querySelectorAll('entry'));
-        const feedItems = (rssItems.length ? rssItems : atomItems).slice(0, maxItems).map((item, index) => {
+        const sourceItems = rssItems.length ? rssItems : atomItems;
+        const feedItems = sourceItems.slice(0, maxItems).map((item, index) => {
           const title = item.querySelector('title')?.textContent?.trim() || 'Untitled';
           const linkNode = item.querySelector('link');
           const rawLink = linkNode?.getAttribute('href') || linkNode?.textContent?.trim() || '';
           const link = (() => {
             try {
-              if (!rawLink) return '#';
+              if (!rawLink) return INVALID_LINK_PLACEHOLDER;
               const url = new URL(rawLink, rssUrl);
               if (!['http:', 'https:'].includes(url.protocol)) {
-                return '#';
+                return INVALID_LINK_PLACEHOLDER;
               }
               return url.toString();
             } catch {
-              return '#';
+              return INVALID_LINK_PLACEHOLDER;
             }
           })();
           const date = item.querySelector('pubDate, updated, published')?.textContent?.trim();
-          const key = link !== '#'
+          const key = link !== INVALID_LINK_PLACEHOLDER
             ? link
-            : hashKey(`${title}|${date ?? ''}|${index}`);
+            : hashKey(`${title}${KEY_SEPARATOR}${date ?? ''}${KEY_SEPARATOR}${index}`);
           return { title, link, date, key };
         });
 
