@@ -12,6 +12,18 @@ interface FeedItem {
 }
 
 const DEFAULT_MAX_ITEMS = 6;
+const RSS_PROXY_URL = 'https://api.allorigins.win/raw?url=';
+
+const resolveFeedUrl = (feedUrl: string) => {
+  const url = new URL(feedUrl);
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('Unsupported protocol');
+  }
+  if (typeof window !== 'undefined' && url.origin === window.location.origin) {
+    return url.toString();
+  }
+  return `${RSS_PROXY_URL}${encodeURIComponent(url.toString())}`;
+};
 
 const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFAULT_MAX_ITEMS }) => {
   const [items, setItems] = useState<FeedItem[]>([]);
@@ -30,12 +42,19 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
     const loadFeed = async () => {
       try {
         setStatus('loading');
-        const response = await fetch(rssUrl, { signal: controller.signal });
+        const requestUrl = resolveFeedUrl(rssUrl);
+        const response = await fetch(requestUrl, { signal: controller.signal, credentials: 'omit' });
         if (!response.ok) {
           throw new Error(`RSS request failed: ${response.status}`);
         }
         const text = await response.text();
+        if (/<\!DOCTYPE/i.test(text) || /<\!ENTITY/i.test(text)) {
+          throw new Error('Unsupported XML content');
+        }
         const parsed = new DOMParser().parseFromString(text, 'text/xml');
+        if (parsed.querySelector('parsererror')) {
+          throw new Error('Invalid XML');
+        }
         const rssItems = Array.from(parsed.querySelectorAll('item'));
         const atomItems = Array.from(parsed.querySelectorAll('entry'));
         const feedItems = (rssItems.length ? rssItems : atomItems).slice(0, maxItems).map((item) => {
@@ -112,22 +131,25 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
 
   return (
     <ul className="space-y-2 font-mono text-xs">
-      {items.map((item, index) => (
-        <li
-          key={`${item.link}-${index}`}
-          className="group flex flex-col gap-1 p-2 border border-gray-300 dark:border-gray-700 hover:border-space-cyan transition-colors"
-        >
-          <a
-            href={item.link}
-            target="_blank"
-            rel="noreferrer"
-            className="font-bold uppercase group-hover:text-space-cyan transition-colors"
+      {items.map((item, index) => {
+        const key = item.link !== '#' ? item.link : `${item.title}-${index}`;
+        return (
+          <li
+            key={key}
+            className="group flex flex-col gap-1 p-2 border border-gray-300 dark:border-gray-700 hover:border-space-cyan transition-colors"
           >
-            {item.title}
-          </a>
-          {item.date && <span className="text-[10px] opacity-60">{item.date}</span>}
-        </li>
-      ))}
+            <a
+              href={item.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold uppercase group-hover:text-space-cyan transition-colors"
+            >
+              {item.title}
+            </a>
+            {item.date && <span className="text-[10px] opacity-60">{item.date}</span>}
+          </li>
+        );
+      })}
     </ul>
   );
 };
