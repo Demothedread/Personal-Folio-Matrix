@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ModuleData, ModuleType } from '../types';
+import { CMSItem, ModuleData, ModuleType } from '../types';
 
 interface ModuleEditorProps {
   module: ModuleData;
@@ -14,6 +14,32 @@ interface ValidationErrors {
   embedUrl?: string;
   general?: string;
 }
+
+const CMS_EXAMPLE_ITEMS: CMSItem[] = [
+  {
+    id: 'post-1',
+    title: 'Log',
+    excerpt: 'Summary',
+    date: '2026-01-01',
+    tags: ['tag'],
+    body: 'Full entry',
+    status: 'published'
+  }
+];
+const CMS_EXAMPLE = JSON.stringify(CMS_EXAMPLE_ITEMS);
+
+const isValidCmsItems = (items: unknown): items is CMSItem[] => (
+  Array.isArray(items) &&
+  items.every(item =>
+    typeof item.id === 'string' &&
+    typeof item.title === 'string' &&
+    typeof item.excerpt === 'string' &&
+    typeof item.date === 'string' &&
+    (item.tags === undefined || (Array.isArray(item.tags) && item.tags.every(tag => typeof tag === 'string'))) &&
+    (item.body === undefined || typeof item.body === 'string') &&
+    (item.status === undefined || item.status === 'draft' || item.status === 'published')
+  )
+);
 
 const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel }) => {
   const [formData, setFormData] = useState<ModuleData>({ ...module });
@@ -86,6 +112,20 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel })
   const handleSave = () => {
     if (validateForm()) {
       onSave(formData);
+    }
+  };
+
+  const parseCmsItems = (value: string) => {
+    try {
+      const parsed = JSON.parse(value);
+      if (isValidCmsItems(parsed)) {
+        setFormData(prev => ({ ...prev, cmsItems: parsed }));
+        setErrors(prev => ({ ...prev, general: undefined }));
+        return;
+      }
+      setErrors(prev => ({ ...prev, general: 'CMS data must be a JSON array with id, title, excerpt, and date fields.' }));
+    } catch {
+      setErrors(prev => ({ ...prev, general: 'CMS data must be valid JSON.' }));
     }
   };
 
@@ -237,12 +277,28 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel })
                  </div>
              )}
 
-             {/* Generic warning for other types */}
-             {!['EXTERNAL_EMBED', 'CUSTOM_CODE', 'TEXT_BOX', 'TEXT_EDITOR'].includes(formData.type) && (
-                 <div className="p-2 border border-dashed border-gray-500 text-xs opacity-60">
-                     Content for {formData.type} is handled by internal components. Dimensions and Position can still be edited.
-                 </div>
-             )}
+              {formData.type === ModuleType.BLOG_PORTAL && (
+                <div className="space-y-1 flex flex-col h-40">
+                  <label className="text-xs opacity-70">CMS Blog Items (JSON Array)</label>
+                  <textarea
+                    className="flex-1 w-full bg-gray-100 dark:bg-gray-800 border border-gray-400 p-2 font-mono text-xs"
+                    value={formData.cmsItems ? JSON.stringify(formData.cmsItems, null, 2) : '[]'}
+                    onChange={e => parseCmsItems(e.target.value)}
+                  />
+                  <div className="text-[10px] opacity-60 space-y-1">
+                    <span>Example:</span>
+                    <code className="block text-[10px] break-words">{CMS_EXAMPLE}</code>
+                  </div>
+                  {errors.general && <p className="text-red-600 text-xs mt-1">{errors.general}</p>}
+                </div>
+              )}
+
+              {/* Generic warning for other types */}
+              {!['EXTERNAL_EMBED', 'CUSTOM_CODE', 'TEXT_BOX', 'TEXT_EDITOR', 'BLOG_PORTAL'].includes(formData.type) && (
+                  <div className="p-2 border border-dashed border-gray-500 text-xs opacity-60">
+                      Content for {formData.type} is handled by internal components. Dimensions and Position can still be edited.
+                  </div>
+              )}
           </div>
         </div>
 

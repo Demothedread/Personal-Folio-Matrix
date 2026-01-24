@@ -2,7 +2,19 @@ import { WorldPosition } from '../types';
 
 export const PROJECT_CONSTANTS = {
   PERSPECTIVE: 800, // Reduced for stronger parallax/depth effect
+  SCROLL_DEPTH_FACTOR: 0.12,
+  DEPTH_ATTENUATION: 1000,
 };
+
+/**
+ * Scale scroll-driven depth offset by distance from the camera.
+ * @param z - World space z position.
+ * @param attenuation - Depth distance where influence reaches 1.
+ * @returns Normalized influence factor between 0 and 1.
+ */
+const calculateDepthInfluence = (z: number, attenuation: number) => (
+  Math.min(1, Math.max(0, -z / attenuation))
+);
 
 /**
  * Projects a 3D point in world space to 2D screen space based on scroll position and global rotation.
@@ -14,7 +26,7 @@ export const project3DTo2D = (
   windowHeight: number,
   rotationY: number = 0 // Degrees
 ) => {
-  const { PERSPECTIVE } = PROJECT_CONSTANTS;
+  const { PERSPECTIVE, SCROLL_DEPTH_FACTOR, DEPTH_ATTENUATION } = PROJECT_CONSTANTS;
 
   // 1. Apply Global Rotation (Y-Axis)
   // Rotate around the world origin (0, 0, 0)
@@ -26,7 +38,10 @@ export const project3DTo2D = (
   // x' = x cos θ + z sin θ
   // z' = z cos θ - x sin θ
   const rx = pos.x * cos + pos.z * sin;
-  const rz = pos.z * cos - pos.x * sin;
+  // Apply scroll-based depth offset that increases for objects farther from camera (negative z).
+  const depthInfluence = calculateDepthInfluence(pos.z, DEPTH_ATTENUATION);
+  const scrollDepth = scrollY * SCROLL_DEPTH_FACTOR * depthInfluence;
+  const rz = pos.z * cos - pos.x * sin + scrollDepth;
 
   // 2. Relative Y position based on scroll. 
   // We assume y=0 is the top of the "world".

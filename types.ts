@@ -36,12 +36,23 @@ export interface ModuleData {
   type: ModuleType;
   title: string;
   content?: any; // Used for text content
+  cmsItems?: CMSItem[];
   embedUrl?: string; // Used for EXTERNAL_EMBED
   codeSnippet?: string; // Used for CUSTOM_CODE
   worldPos: WorldPosition;
   dimensions: Dimensions; // Width/Height in pixels (at scale 1)
   connectedTo?: string[]; // IDs of modules this one connects to
   themeColor?: 'cyan' | 'magenta' | 'yellow' | 'rust' | 'olive' | 'slate';
+}
+
+export interface CMSItem {
+  id: string;
+  title: string;
+  excerpt: string;
+  date: string;
+  tags?: string[];
+  body?: string;
+  status?: 'draft' | 'published';
 }
 
 export interface ThemeContextType {

@@ -89,6 +89,18 @@ export const MODULE_TEMPLATES: ModuleTemplate[] = [
     }
   },
   {
+    name: 'Blog Portal',
+    description: 'CMS-backed blog/transmission feed',
+    category: 'content',
+    icon: '🛰️',
+    template: {
+      type: ModuleType.BLOG_PORTAL,
+      title: 'TRANSMISSIONS',
+      dimensions: { w: 320, h: 420 },
+      themeColor: 'rust'
+    }
+  },
+  {
     name: 'Hero Section',
     description: 'Large hero/banner section',
     category: 'content',
