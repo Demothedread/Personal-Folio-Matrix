@@ -1,7 +1,14 @@
 import React from 'react';
 import { CMSItem } from '../../types';
 
-const defaultItems = [
+interface DefaultListItem {
+  id: string;
+  title: string;
+  date: string;
+  status: string;
+}
+
+const defaultItems: DefaultListItem[] = [
   { id: 'skill-1', title: 'React Architecture', date: '2023-10-15', status: 'MASTERED' },
   { id: 'skill-2', title: 'Three.js & WebGL', date: '2023-11-02', status: 'LOADING' },
   { id: 'skill-3', title: 'UI/UX Principles', date: '2023-12-10', status: 'OPTIMIZED' },
@@ -24,7 +31,7 @@ const ListContent: React.FC<ListContentProps> = ({ items, variant = 'default' })
           </div>
         ) : (
           blogItems.map((item) => (
-            <article key={item.id} className="border border-gray-300 dark:border-gray-700 p-3 space-y-2 hover:border-space-magenta transition-colors">
+            <article key={item.id} className="border border-gray-300 dark:border-gray-700 p-3 space-y-2 transition-colors">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="font-bold uppercase text-sm">{item.title}</h3>

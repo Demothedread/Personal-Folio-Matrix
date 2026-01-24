@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ModuleData, ModuleType } from '../types';
+import { CMSItem, ModuleData, ModuleType } from '../types';
 
 interface ModuleEditorProps {
   module: ModuleData;
@@ -14,6 +14,32 @@ interface ValidationErrors {
   embedUrl?: string;
   general?: string;
 }
+
+const CMS_EXAMPLE_ITEMS: CMSItem[] = [
+  {
+    id: 'post-1',
+    title: 'Log',
+    excerpt: 'Summary',
+    date: '2026-01-01',
+    tags: ['tag'],
+    body: 'Full entry',
+    status: 'published'
+  }
+];
+const CMS_EXAMPLE = JSON.stringify(CMS_EXAMPLE_ITEMS);
+
+const isValidCmsItems = (items: unknown): items is CMSItem[] => (
+  Array.isArray(items) &&
+  items.every(item =>
+    typeof item.id === 'string' &&
+    typeof item.title === 'string' &&
+    typeof item.excerpt === 'string' &&
+    typeof item.date === 'string' &&
+    (item.tags === undefined || (Array.isArray(item.tags) && item.tags.every(tag => typeof tag === 'string'))) &&
+    (item.body === undefined || typeof item.body === 'string') &&
+    (item.status === undefined || item.status === 'draft' || item.status === 'published')
+  )
+);
 
 const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel }) => {
   const [formData, setFormData] = useState<ModuleData>({ ...module });
@@ -92,12 +118,12 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel })
   const parseCmsItems = (value: string) => {
     try {
       const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) {
+      if (isValidCmsItems(parsed)) {
         setFormData(prev => ({ ...prev, cmsItems: parsed }));
         setErrors(prev => ({ ...prev, general: undefined }));
         return;
       }
-      setErrors(prev => ({ ...prev, general: 'CMS data must be a JSON array.' }));
+      setErrors(prev => ({ ...prev, general: 'CMS data must be a JSON array with id, title, excerpt, and date fields.' }));
     } catch {
       setErrors(prev => ({ ...prev, general: 'CMS data must be valid JSON.' }));
     }
@@ -259,6 +285,10 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ module, onSave, onCancel })
                     value={formData.cmsItems ? JSON.stringify(formData.cmsItems, null, 2) : '[]'}
                     onChange={e => parseCmsItems(e.target.value)}
                   />
+                  <div className="text-[10px] opacity-60 space-y-1">
+                    <span>Example:</span>
+                    <code className="block text-[10px] break-words">{CMS_EXAMPLE}</code>
+                  </div>
                   {errors.general && <p className="text-red-600 text-xs mt-1">{errors.general}</p>}
                 </div>
               )}

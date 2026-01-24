@@ -7,6 +7,16 @@ export const PROJECT_CONSTANTS = {
 };
 
 /**
+ * Scale scroll-driven depth offset by distance from the camera.
+ * @param z - World space z position.
+ * @param attenuation - Depth distance where influence reaches 1.
+ * @returns Normalized influence factor between 0 and 1.
+ */
+const calculateDepthInfluence = (z: number, attenuation: number) => (
+  Math.min(1, Math.max(0, -z / attenuation))
+);
+
+/**
  * Projects a 3D point in world space to 2D screen space based on scroll position and global rotation.
  */
 export const project3DTo2D = (
@@ -28,7 +38,8 @@ export const project3DTo2D = (
   // x' = x cos θ + z sin θ
   // z' = z cos θ - x sin θ
   const rx = pos.x * cos + pos.z * sin;
-  const depthInfluence = Math.min(1, Math.max(0, -pos.z / DEPTH_ATTENUATION));
+  // Apply scroll-based depth offset that increases for objects farther from camera (negative z).
+  const depthInfluence = calculateDepthInfluence(pos.z, DEPTH_ATTENUATION);
   const scrollDepth = scrollY * SCROLL_DEPTH_FACTOR * depthInfluence;
   const rz = pos.z * cos - pos.x * sin + scrollDepth;
 
