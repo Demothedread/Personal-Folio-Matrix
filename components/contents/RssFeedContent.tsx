@@ -9,6 +9,7 @@ interface FeedItem {
   title: string;
   link: string;
   date?: string;
+  key: string;
 }
 
 const DEFAULT_MAX_ITEMS = 6;
@@ -53,10 +54,6 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
     const loadFeed = async () => {
       timeoutRef.current = window.setTimeout(() => {
         controller.abort();
-        if (timeoutRef.current !== null) {
-          window.clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
       }, REQUEST_TIMEOUT_MS);
       try {
         setStatus('loading');
@@ -74,6 +71,9 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
           throw new Error('Unsupported XML content');
         }
         const parsed = new DOMParser().parseFromString(text, 'text/xml');
+        if (parsed.doctype) {
+          throw new Error('Unsupported XML content');
+        }
         if (parsed.querySelector('parsererror')) {
           throw new Error('Invalid XML');
         }
@@ -96,7 +96,10 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
             }
           })();
           const date = item.querySelector('pubDate, updated, published')?.textContent?.trim();
-          return { title, link, date };
+          const key = link !== '#'
+            ? link
+            : hashKey(`${title}|${date ?? ''}`);
+          return { title, link, date, key };
         });
 
         if (isMounted) {
@@ -163,9 +166,7 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
   return (
     <ul className="space-y-2 font-mono text-xs">
       {items.map((item) => {
-        const key = item.link !== '#'
-          ? item.link
-          : hashKey(`${item.title}|${item.date ?? ''}`);
+        const key = item.key;
         return (
           <li
             key={key}
