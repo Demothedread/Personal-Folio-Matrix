@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface RssFeedContentProps {
   rssUrl?: string;
@@ -38,6 +38,7 @@ const resolveFeedUrl = (feedUrl: string) => {
 const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFAULT_MAX_ITEMS }) => {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!rssUrl) {
@@ -49,9 +50,14 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
     let isMounted = true;
     const controller = new AbortController();
 
-    let timeoutId: number | null = null;
     const loadFeed = async () => {
-      timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      timeoutRef.current = window.setTimeout(() => {
+        controller.abort();
+        if (timeoutRef.current !== null) {
+          window.clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      }, REQUEST_TIMEOUT_MS);
       try {
         setStatus('loading');
         const requestUrl = resolveFeedUrl(rssUrl);
@@ -103,8 +109,9 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
           setStatus('error');
         }
       } finally {
-        if (timeoutId !== null) {
-          window.clearTimeout(timeoutId);
+        if (timeoutRef.current !== null) {
+          window.clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
         }
       }
     };
@@ -113,8 +120,9 @@ const RssFeedContent: React.FC<RssFeedContentProps> = ({ rssUrl, maxItems = DEFA
 
     return () => {
       isMounted = false;
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
       controller.abort();
     };
